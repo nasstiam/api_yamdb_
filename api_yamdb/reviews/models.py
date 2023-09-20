@@ -1,11 +1,12 @@
 import datetime
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 from rest_framework.exceptions import ValidationError
 
 
-User = get_user_model()
+
 SCORE_CHOICES = (
     (1, '1'),
     (2, '2'),
@@ -20,10 +21,10 @@ SCORE_CHOICES = (
 )
 
 
-class User(models.Model):
-    id = models.IntegerField(primary_key=True)
-    username = models.CharField(max_length=50, verbose_name='username')
-    email = models.EmailField(max_length=200)
+class User(AbstractUser):
+    # id = models.IntegerField(primary_key=True)
+    username = models.CharField(max_length=50, verbose_name='username', unique=True)
+    email = models.EmailField(max_length=200, unique=True)
     USER = 1
     MODERATOR = 2
     ADMIN = 3
@@ -32,13 +33,17 @@ class User(models.Model):
         (MODERATOR, 'moderator'),
         (ADMIN, 'admin'),
     )
-    role = models.CharField(max_length=50, choices=USER_ROLE_CHOICES, verbose_name='user_role')
+    role = models.CharField(max_length=50, choices=USER_ROLE_CHOICES, default='user', verbose_name='user_role')
     bio = models.CharField(max_length=200, verbose_name='user_bio', null=True)
     first_name = models.CharField(max_length=200, verbose_name='first_name', null=True)
     last_name = models.CharField(max_length=200, verbose_name='last_name', null=True)
+    confirmation_code = models.CharField(max_length=36, verbose_name='confirmation_code', null=True)
+
+    def __str__(self):
+        return self.username
 
 class Category(models.Model):
-    id = models.IntegerField(primary_key=True)
+    # id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, verbose_name='category_name')
     slug = models.SlugField(unique=True, verbose_name='slug')
 
@@ -47,7 +52,7 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-    id = models.IntegerField(primary_key=True)
+    # id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, verbose_name='genre_name')
     slug = models.SlugField(unique=True, verbose_name='slug')
 
@@ -56,16 +61,17 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-    id = models.IntegerField(primary_key=True)
+    # id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, verbose_name='title_name')
     year = models.IntegerField(verbose_name='creation_date')
+    description = models.CharField(max_length=500, blank=True)
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
-        related_name='titles',
-        blank=True,
+        related_name='title',
         null=True
     )
+    genre = models.ManyToManyField(Genre, through='GenreTitle')
 
     def save(self, *args, **kwargs):
         if self.year > datetime.date.today().year:
@@ -76,13 +82,11 @@ class Title(models.Model):
 
 
 class GenreTitle(models.Model):
-    id = models.IntegerField(primary_key=True)
     title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name='genre_title')
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE, related_name='genre_title')
 
 
 class Review(models.Model):
-    id = models.IntegerField(primary_key=True)
     title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name='reviews')
     text = models.TextField(verbose_name='text_review')
     author = models.ForeignKey(
@@ -91,9 +95,12 @@ class Review(models.Model):
     pub_date = models.DateTimeField(
         'Publication date', auto_now_add=True, db_index=True)
 
+    class Meta:
+        unique_together = [["title", "author"]]
+
 
 class Comment(models.Model):
-    id = models.IntegerField(primary_key=True)
+    # id = models.IntegerField(primary_key=True)
     review = models.ForeignKey(
         Review, on_delete=models.CASCADE, related_name='comments')
     text = models.TextField()

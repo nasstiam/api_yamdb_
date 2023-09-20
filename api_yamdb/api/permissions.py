@@ -7,4 +7,16 @@ class IsAuthorModeratorAdminSuperuserOrReadOnly(BasePermission):
                 or request.user == obj.author
                 or request.user.role == 'moderator'
                 or request.user.role == 'admin'
-                or request.user.is_superuser is True)
+                or request.user.is_superuser
+                )
+
+class IsAdminOrReadOnly(BasePermission):
+    """ Only admin is permitted to create, change or delete object"""
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return True
+        else:
+            if request.user.is_authenticated:
+                return request.user.role == 'admin'
+            else:
+                return False
