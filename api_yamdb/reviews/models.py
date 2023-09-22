@@ -1,10 +1,8 @@
 import datetime
 
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from rest_framework.exceptions import ValidationError
-
 
 
 SCORE_CHOICES = (
@@ -22,12 +20,11 @@ SCORE_CHOICES = (
 
 
 class User(AbstractUser):
-    # id = models.IntegerField(primary_key=True)
     username = models.CharField(max_length=50, verbose_name='username', unique=True)
     email = models.EmailField(max_length=200, unique=True)
-    USER = 1
-    MODERATOR = 2
-    ADMIN = 3
+    USER = 'user'
+    MODERATOR = 'moderator'
+    ADMIN = 'admin'
     USER_ROLE_CHOICES = (
         (USER, "user"),
         (MODERATOR, 'moderator'),
@@ -39,11 +36,19 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=200, verbose_name='last_name', null=True)
     confirmation_code = models.CharField(max_length=36, verbose_name='confirmation_code', null=True)
 
+    @property
+    def is_admin(self):
+        return self.role == 'admin' or self.is_staff
+
+    @property
+    def is_moderator(self):
+        return self.role == 'moderator'
+
     def __str__(self):
         return self.username
 
+
 class Category(models.Model):
-    # id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, verbose_name='category_name')
     slug = models.SlugField(unique=True, verbose_name='slug')
 
@@ -52,7 +57,6 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-    # id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, verbose_name='genre_name')
     slug = models.SlugField(unique=True, verbose_name='slug')
 
@@ -61,7 +65,6 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-    # id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, verbose_name='title_name')
     year = models.IntegerField(verbose_name='creation_date')
     description = models.CharField(max_length=500, blank=True)
@@ -74,6 +77,7 @@ class Title(models.Model):
     genre = models.ManyToManyField(Genre, through='GenreTitle')
 
     def save(self, *args, **kwargs):
+        """Check year is not negative or not in the future"""
         if self.year > datetime.date.today().year:
             raise ValidationError("The year cannot be in the future!")
         elif self.year <= 0:
@@ -82,6 +86,7 @@ class Title(models.Model):
 
 
 class GenreTitle(models.Model):
+    """Additional class linking titles and genres"""
     title = models.ForeignKey(Title, on_delete=models.CASCADE, related_name='genre_title')
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE, related_name='genre_title')
 
@@ -96,11 +101,10 @@ class Review(models.Model):
         'Publication date', auto_now_add=True, db_index=True)
 
     class Meta:
-        unique_together = [["title", "author"]]
+        unique_together = [["title", "author"]] # author can leave only one review on title
 
 
 class Comment(models.Model):
-    # id = models.IntegerField(primary_key=True)
     review = models.ForeignKey(
         Review, on_delete=models.CASCADE, related_name='comments')
     text = models.TextField()

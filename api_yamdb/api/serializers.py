@@ -36,15 +36,17 @@ class UserTokenSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=50)
     confirmation_code = serializers.CharField(max_length=36)
 
-    # class Meta:
-    #     fields = ('username', 'confirmation_code')
-    #     model = User
-
 
 class UserSerializer(serializers.ModelSerializer):
+
     class Meta:
-        fields = ('username', 'email', 'role', 'bio', 'first_name', 'last_name', 'confirmation_code')
+        fields = ('username', 'email', 'role', 'bio', 'first_name', 'last_name')
         model = User
+
+    def validate_username(self, username):
+        if username == 'me':
+            raise serializers.ValidationError('Username "me" is not allowed')
+        return username
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -110,19 +112,13 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
 
     def validate(self, data):
-        print('attrs', data)
-        print('context', self.context.get('request'))
         method = self.context.get('request').method
         if method != "POST":
             return data
         else:
-            print('22222222222', self.context.get('view').kwargs)
             title = get_object_or_404(Title, pk=self.context.get('view').kwargs.get("title_id"))
-            print('author', self.context.get('request').user)
             review = Review.objects.filter(author=self.context.get('request').user, title=title)
-            print('review', review)
             if review:
-                print('33333333333')
                 raise serializers.ValidationError('You can not leave the second review on the same title')
             return data
 
@@ -132,5 +128,5 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only=True, slug_field='username'
     )
     class Meta:
-        fields = '__all__'
+        exclude = ('review', )
         model = Comment
