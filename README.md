@@ -2,7 +2,12 @@
 
 ### Description:
 
-The YaMDb project collects user reviews of various works.
+The YaMDb project collects user reviews of various works. Titles have different Genres and Categories. 
+Only Administrator can add Titles, Categories adn Genres. Users can leave only one text Review on a Title 
+and give a score to Title. Users can comment Reviews. Only Authenticated users can leave reviews, comments 
+and give ratings. 
+User can register by himself or Admin can register User. User gets confirmation code on email, which allows
+to get JWT-Token. 
 
 ### Tech:
 

@@ -1,55 +1,37 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import serializers, status
-from rest_framework.response import Response
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework import serializers
 
 from reviews.models import Category, Genre, Title, Review, Comment, User, GenreTitle
 
 
-class ConfirmationCodeTokenObtainPairSerializer(TokenObtainPairSerializer):
-    username_field = User.USERNAME_FIELD
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields[self.username_field] = serializers.CharField()
-        del self.fields['password']
-        self.fields['confirmation_code'] = serializers.CharField()
-
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-
-        # Add custom claims
-        token['username'] = user.username
-        token['confirmation_code'] = user.confirmation_code
-        # ...
-        return token
-
-
 class UserCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating User model object"""
     class Meta:
         fields = ('username', 'email')
         model = User
 
 
 class UserTokenSerializer(serializers.Serializer):
+    """Serializer for receiving Token for User with username and Confirmation code"""
     username = serializers.CharField(max_length=50)
     confirmation_code = serializers.CharField(max_length=36)
 
 
 class UserSerializer(serializers.ModelSerializer):
-
+    """Serializer for User Model"""
     class Meta:
         fields = ('username', 'email', 'role', 'bio', 'first_name', 'last_name')
         model = User
 
     def validate_username(self, username):
+        """Check that username is not 'me'"""
         if username == 'me':
             raise serializers.ValidationError('Username "me" is not allowed')
         return username
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    """Serializer for Category model"""
     class Meta:
         fields = ['name', 'slug']
         model = Category
@@ -57,19 +39,15 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class GenreSerializer(serializers.ModelSerializer):
+    """Serializer for Genre model"""
     class Meta:
         fields = ['name', 'slug']
         model = Genre
         lookup_field = 'slug'
 
 
-class GenreRelatedField(serializers.SlugRelatedField):
-    def to_representation(self, value):
-        serializer = GenreSerializer()
-        return serializer.to_representation(value)
-
-
 class TitleGetSerializer(serializers.ModelSerializer):
+    """Title Serializer for GET-request"""
     rating = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(required=False, many=True, read_only=True)
@@ -79,6 +57,7 @@ class TitleGetSerializer(serializers.ModelSerializer):
         model = Title
 
     def get_rating(self, obj):
+        """Calculated based on all reviews for this Title"""
         reviews = Review.objects.filter(title=obj.id)
         n = len(reviews)
         total_score = sum([int(review.score) for review in reviews])
@@ -88,6 +67,7 @@ class TitleGetSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
+    """Title Serializer for POST-request"""
     genre = serializers.SlugRelatedField(
         slug_field='slug',
         queryset=Genre.objects.all(),
@@ -112,6 +92,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
 
     def validate(self, data):
+        """Check that user can leave only one review for a title"""
         method = self.context.get('request').method
         if method != "POST":
             return data
@@ -124,6 +105,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    """Serializer for Comment model"""
     author = serializers.SlugRelatedField(
         read_only=True, slug_field='username'
     )

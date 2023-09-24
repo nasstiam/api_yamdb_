@@ -9,13 +9,11 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .filters import TitleFilter
 from .permissions import IsAdminOrReadOnly, IsAuthorModeratorAdminSuperuserOrReadOnly, IsAdminOnly
 from .serializers import CategorySerializer, GenreSerializer, TitleSerializer, ReviewSerializer, CommentSerializer, \
-    UserCreateSerializer, UserSerializer, UserTokenSerializer, ConfirmationCodeTokenObtainPairSerializer, \
-    TitleGetSerializer
+    UserCreateSerializer, UserSerializer, UserTokenSerializer, TitleGetSerializer
 from reviews.models import Category, Genre, Title, Review, Comment, User
 
 from django.core.mail import send_mail
